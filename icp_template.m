@@ -172,11 +172,11 @@ parttib_multiplier = (max(nodes_template(:,1)) - min(nodes_template(:,1)))/(max(
 
 % If the users model is smaller than the template, then this temporarly
 % makes it a similar size to the template, for icp alignment accuracy
-if multiplier > 1
-    nodes = nodes*multiplier;
-elseif parttib_multiplier > 1 && tibfib_switch == 2 && bone_indx >= 13
-    nodes = nodes*parttib_multiplier;
-end
+% if multiplier > 1
+%     nodes = nodes*multiplier;
+% elseif parttib_multiplier > 1 && tibfib_switch == 2 && bone_indx >= 13
+%     nodes = nodes*parttib_multiplier;
+% end
 
 %% Performing ICP alignment
 % This is the initial alignment with no rotation.
@@ -209,6 +209,32 @@ r.rxxz = rotx(180) * rotz(90);
 r.rxxzzz = rotx(180) * rotz(270);
 r.rxxxzzz = rotx(270) * rotz(270);
 
+% 45-degree rotations about x, y, z and combinations (using deg2rad if needed)
+r.r45x = rotx(45);
+r.r315x = rotx(315); % -45 deg
+
+r.r45y = roty(45);
+r.r315y = roty(315);
+
+r.r45z = rotz(45);
+r.r315z = rotz(315);
+
+% Combined 45-degree rotations (examples: 45 about x then 45 about y, etc.)
+r.r45x45y = rotx(45) * roty(45);
+r.r45x315y = rotx(45) * roty(315);
+r.r315x45y = rotx(315) * roty(45);
+r.r315x315y = rotx(315) * roty(315);
+
+r.r45x45z = rotx(45) * rotz(45);
+r.r45x315z = rotx(45) * rotz(315);
+r.r315x45z = rotx(315) * rotz(45);
+r.r315x315z = rotx(315) * rotz(315);
+
+r.r45y45z = roty(45) * rotz(45);
+r.r45y315z = roty(45) * rotz(315);
+r.r315y45z = roty(315) * rotz(45);
+r.r315y315z = roty(315) * rotz(315);
+
 fields = fieldnames(r);
 
 if better_start == 2
@@ -227,7 +253,7 @@ if better_start == 2
 end
 
 if better_start == 1
-    iterations_temp = 3;
+    iterations_temp = 5;
     for n = 1:numel(fields)
         rot = r.(fields{n}); % Access each rotation matrix using the field name
         rotnodes = nodes*rot; % Multiple nodes by rotation matrix
@@ -264,27 +290,90 @@ if better_start == 1
         end
     end
 end
+if better_start == 3
+    [x_opt, rigid_aligned_nodes] = rigidreg(nodes, nodes_template);
+        %%save mesh of aligned nodes, as ply
+    % Prepare and write PLY file if filename provided
+    save_ply_name = "C:\Users\micha\Documents\GitHub\AAFACT4GIAS3\testtalusalign.ply";
+    if exist('save_ply_name','var') && ~isempty(save_ply_name)
+        % Ensure filename has .ply extension and is char
+        if isstring(save_ply_name), save_ply_name = char(save_ply_name); end
+        [p,n,ext] = fileparts(save_ply_name);
+        if isempty(ext), ext = '.ply'; end
+        if isempty(p)
+            save_ply_name = fullfile(pwd, [n ext]);
+        else
+            save_ply_name = fullfile(p, [n ext]);
+        end
 
-% Find the smallest error value and corresponding field name
-E_values = struct2array(E);  % Convert the structure 'E' to a regular array of error values
-E_fields = fieldnames(E);    % Get the list of field names from 'E'
-[~, idx_smallest] = min(E_values);  % Find the index of the smallest error value
-smallest_field = E_fields{idx_smallest};  % Get the corresponding field name
+        % Prepare pointCloud object and write using pcwrite
+        try
+            pc = pointCloud(double(rigid_aligned_nodes));
+            pcwrite(pc, save_ply_name, 'Encoding','ascii');
+        catch ME
+            warning('Failed to write PLY via pcwrite: %s. Falling back to manual write.', ME.message);
+            % Fallback: manual ASCII PLY write
+            verts = double(aligned_nodes);
+            numVerts = size(verts,1);
+            fid = fopen(save_ply_name, 'w');
+            if fid == -1
+                warning('Could not open %s for writing.', save_ply_name);
+            else
+                fprintf(fid, 'ply\n');
+                fprintf(fid, 'format ascii 1.0\n');
+                fprintf(fid, 'element vertex %d\n', numVerts);
+                fprintf(fid, 'property float x\n');
+                fprintf(fid, 'property float y\n');
+                fprintf(fid, 'property float z\n');
+                fprintf(fid, 'end_header\n');
+                fprintf(fid, '%f %f %f\n', verts');
+                fclose(fid);
+            end
+        end
+    end
+    
+end
+    
+if better_start == 1 || better_start == 2
+    % Find the smallest error value and corresponding field name
+    E_values = struct2array(E);  % Convert the structure 'E' to a regular array of error values
+    E_fields = fieldnames(E);    % Get the list of field names from 'E'
+    [~, idx_smallest] = min(E_values);  % Find the index of the smallest error value
+    smallest_field = E_fields{idx_smallest};  % Get the corresponding field name
+    
+    % Retrieve the corresponding R, T, and rotation matrix
+    best_R = R.(smallest_field);  % The best R matrix
+    best_T = T.(smallest_field);  % The best T vector
+    best_rotation_matrix = r.(smallest_field);  % The rotation matrix from the original structure
+    
+    % Perform the final alignment calculation
+    aligned_nodes = (best_R * ((nodes*best_rotation_matrix)') + repmat(best_T, 1, length(nodes')))';  % Align the nodes
+    
+    % Store the results for the final transformation
+    iflip = best_rotation_matrix;  % The rotation matrix used for alignment
+    iR = best_R;  % The best R matrix
+    iT = best_T;  % The best T vector
+elseif better_start == 3
+    [R_temp,T_temp,E_temp] = icp(nodes_template',rigid_aligned_nodes', iterations,'Matching','kDtree','EdgeRejection',logical(1),'Triangulation',con_temp);
+    [Rwr_temp,Twr_temp,Ewr_temp] = icp(nodes_template',rigid_aligned_nodes', iterations,'Matching','kDtree','WorstRejection',0.1);
+    if E_temp(end) < Ewr_temp(end)
+        R = R_temp;
+        T = T_temp;
+        E = E_temp(end);
+    else
+        R = Rwr_temp;
+        T = Twr_temp;
+        E = Ewr_temp(end);
+    end
 
-% Retrieve the corresponding R, T, and rotation matrix
-best_R = R.(smallest_field);  % The best R matrix
-best_T = T.(smallest_field);  % The best T vector
-best_rotation_matrix = r.(smallest_field);  % The rotation matrix from the original structure
+    aligned_nodes = (R * ((rigid_aligned_nodes)') + repmat(T, 1, length(nodes')))';
 
-% Perform the final alignment calculation
-aligned_nodes = (best_R * ((nodes*best_rotation_matrix)') + repmat(best_T, 1, length(nodes')))';  % Align the nodes
-
-% Store the results for the final transformation
-iflip = best_rotation_matrix;  % The rotation matrix used for alignment
-iR = best_R;  % The best R matrix
-iT = best_T;  % The best T vector
-
-%% Additional alignments and adjustments
+    % Store the results for the final transformation
+    iflip = x_opt;  % The rotation matrix used for alignment
+    iR = R;  % The best R matrix
+    iT = T;  % The best T vector
+    %% Additional alignments and adjustments
+end
 % This loop performs an alignment for the TT CS of the talus
 if bone_indx == 1 && bone_coord >= 2
     [sR_talus,~,~] = icp(nodes_template2',nodes_template',25,'Matching','kDtree','EdgeRejection',logical(1),'Triangulation',con_temp);

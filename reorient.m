@@ -30,8 +30,27 @@ end
 
 nodes_coords_final_i3 = (nodes_coords_final_i4' - repmat(RTs.iT,1,length(nodes_coords_final_i4')))';
 nodes_coords_final_i2 = ((RTs.iR)\(nodes_coords_final_i3'))';
-nodes_coords_final_i1 = ((nodes_coords_final_i2)/(RTs.iflip));
+if length(RTs.iflip) == 3
+    nodes_coords_final_i1 = ((nodes_coords_final_i2)/(RTs.iflip));
+elseif length(RTs.iflip) == 6
+    %%apply inverse transformation of RTs.iflip which is in the form
+    %%[tx,ty,tz,rx,ry,rz]
+    t = RTs.iflip(1:3);
+    r = RTs.iflip(4:6);
+    % build rotation matrix from rx,ry,rz (assumed in radians, applied as ZYX: rz,ry,rx)
+    cz = cos(r(3)); sz = sin(r(3));
+    cy = cos(r(2)); sy = sin(r(2));
+    cx = cos(r(1)); sx = sin(r(1));
+    Rz = [cz -sz 0; sz cz 0; 0 0 1];
+    Ry = [cy 0 sy; 0 1 0; -sy 0 cy];
+    Rx = [1 0 0; 0 cx -sx; 0 sx cx];
+    R_iflip = Rz*Ry*Rx;
+    % inverse: transpose for rotation, negative rotated translation
+    R_inv = R_iflip';
+    t_inv = -R_inv * t(:);
+    nodes_coords_final_i1 = (R_inv * nodes_coords_final_i2')' + repmat(t_inv', size(nodes_coords_final_i2,1), 1);
 
+end    
 if isempty(RTs.red) == 0
     nodes_coords_final_i1_red = ((RTs.red)\(nodes_coords_final_i1'))';
     nodes_coords_final_i1 = ((RTs.yellow)\(nodes_coords_final_i1_red'))';
