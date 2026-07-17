@@ -369,7 +369,7 @@ elseif better_start == 3
     aligned_nodes = (R * ((rigid_aligned_nodes)') + repmat(T, 1, length(nodes')))';
 
     % Store the results for the final transformation
-    iflip = x_opt;  % The rotation matrix used for alignment
+    iflip = x_opt';  % The rotation matrix used for alignment
     iR = R;  % The best R matrix
     iT = T;  % The best T vector
     %% Additional alignments and adjustments
