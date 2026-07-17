@@ -294,43 +294,43 @@ if better_start == 3
     [x_opt, rigid_aligned_nodes] = alignMeshesByPCA(nodes_template, nodes);
         %%save mesh of aligned nodes, as ply
     % Prepare and write PLY file if filename provided
-    save_ply_name = "C:\Users\micha\Documents\GitHub\AAFACT4GIAS3\testtalusalign.ply";
-    if exist('save_ply_name','var') && ~isempty(save_ply_name)
-        % Ensure filename has .ply extension and is char
-        if isstring(save_ply_name), save_ply_name = char(save_ply_name); end
-        [p,n,ext] = fileparts(save_ply_name);
-        if isempty(ext), ext = '.ply'; end
-        if isempty(p)
-            save_ply_name = fullfile(pwd, [n ext]);
-        else
-            save_ply_name = fullfile(p, [n ext]);
-        end
-
-        % Prepare pointCloud object and write using pcwrite
-        try
-            pc = pointCloud(double(rigid_aligned_nodes));
-            pcwrite(pc, save_ply_name, 'Encoding','ascii');
-        catch ME
-            warning('Failed to write PLY via pcwrite: %s. Falling back to manual write.', ME.message);
-            % Fallback: manual ASCII PLY write
-            verts = double(aligned_nodes);
-            numVerts = size(verts,1);
-            fid = fopen(save_ply_name, 'w');
-            if fid == -1
-                warning('Could not open %s for writing.', save_ply_name);
-            else
-                fprintf(fid, 'ply\n');
-                fprintf(fid, 'format ascii 1.0\n');
-                fprintf(fid, 'element vertex %d\n', numVerts);
-                fprintf(fid, 'property float x\n');
-                fprintf(fid, 'property float y\n');
-                fprintf(fid, 'property float z\n');
-                fprintf(fid, 'end_header\n');
-                fprintf(fid, '%f %f %f\n', verts');
-                fclose(fid);
-            end
-        end
-    end
+    % save_ply_name = "C:\Users\micha\Documents\GitHub\AAFACT4GIAS3\testtalusalign.ply";
+    % if exist('save_ply_name','var') && ~isempty(save_ply_name)
+    %     % Ensure filename has .ply extension and is char
+    %     if isstring(save_ply_name), save_ply_name = char(save_ply_name); end
+    %     [p,n,ext] = fileparts(save_ply_name);
+    %     if isempty(ext), ext = '.ply'; end
+    %     if isempty(p)
+    %         save_ply_name = fullfile(pwd, [n ext]);
+    %     else
+    %         save_ply_name = fullfile(p, [n ext]);
+    %     end
+    % 
+    %     % Prepare pointCloud object and write using pcwrite
+    %     try
+    %         pc = pointCloud(double(rigid_aligned_nodes));
+    %         pcwrite(pc, save_ply_name, 'Encoding','ascii');
+    %     catch ME
+    %         warning('Failed to write PLY via pcwrite: %s. Falling back to manual write.', ME.message);
+    %         % Fallback: manual ASCII PLY write
+    %         verts = double(aligned_nodes);
+    %         numVerts = size(verts,1);
+    %         fid = fopen(save_ply_name, 'w');
+    %         if fid == -1
+    %             warning('Could not open %s for writing.', save_ply_name);
+    %         else
+    %             fprintf(fid, 'ply\n');
+    %             fprintf(fid, 'format ascii 1.0\n');
+    %             fprintf(fid, 'element vertex %d\n', numVerts);
+    %             fprintf(fid, 'property float x\n');
+    %             fprintf(fid, 'property float y\n');
+    %             fprintf(fid, 'property float z\n');
+    %             fprintf(fid, 'end_header\n');
+    %             fprintf(fid, '%f %f %f\n', verts');
+    %             fclose(fid);
+    %         end
+    %     end
+    % end
     
 end
     
