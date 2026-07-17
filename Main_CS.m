@@ -272,7 +272,7 @@ for m = 1:length(all_files)
         % medial region is in the positive X direction.
         [nodes,cm_nodes] = center(nodes,1);
         better_start = 1; %standard
-        % better_start = 3; %gias3 rigidreg
+        better_start = 3; %gias3 rigidreg
         [aligned_nodes, RTs] = icp_template(bone_indx, nodes, bone_coord(n), better_start);
 
         %% Performs coordinate system calculation

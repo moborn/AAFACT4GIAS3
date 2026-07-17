@@ -291,7 +291,7 @@ if better_start == 1
     end
 end
 if better_start == 3
-    [x_opt, rigid_aligned_nodes] = rigidreg(nodes, nodes_template);
+    [x_opt, rigid_aligned_nodes] = alignMeshesByPCA(nodes_template, nodes);
         %%save mesh of aligned nodes, as ply
     % Prepare and write PLY file if filename provided
     save_ply_name = "C:\Users\micha\Documents\GitHub\AAFACT4GIAS3\testtalusalign.ply";
