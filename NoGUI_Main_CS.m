@@ -19,7 +19,7 @@ clear, clc, close all
 % group_#_bone_laterality.stl (ex. ABC_01_Tibia_Right.stl)
 
 % Determine the files in the folder selected
-FolderPathName = "C:\Users\micha\Downloads\test_hindfoot\tibia";
+FolderPathName = "H:\Masters\left_foot\data\seperated_meshes\Tibia_L\rbf_pose_aligned";
 files = dir(fullfile(FolderPathName, '*.*'));
 files = files(~ismember({files.name},{'.','..'}));
 
@@ -349,6 +349,29 @@ for m = 1:length(all_files)
         % for some reason MATLAB cannot write to the file, it catches the error, posts an error
         % to the terminal, and tries again. If the write is successful, the index is updated to
         % the final index in the FOR loop, and the FOR loop ends after a success.
+        % Ensure Excel is not running to avoid file-lock issues
+        try
+            % On Windows, try to terminate Excel COM servers gracefully
+            if ispc
+                % Attempt to get active COM server and quit
+                try
+                    ExcelApp = actxGetRunningServer('Excel.Application');
+                    ExcelApp.DisplayAlerts = false;
+                    ExcelApp.Workbooks.Close;
+                    ExcelApp.Quit;
+                    delete(ExcelApp);
+                catch
+                    % If no running server or failure, try system taskkill
+                    [~,~] = system('taskkill /IM EXCEL.EXE /F >nul 2>&1');
+                end
+            else
+                % On non-Windows platforms, attempt to close any Excel processes via system
+                [~,~] = system('pkill -f -9 -i excel > /dev/null 2>&1');
+            end
+            pause(0.5) % brief pause to allow OS to release file locks
+        catch
+            % ignore any errors closing Excel
+        end
         try
             xlfilename = fullfile(FolderPathName, sprintf('CoordinateSystem_%s.xlsx', list_bone{bone_indx}));
             % Build cell array S large enough for all placements (14 rows x 4 cols)
