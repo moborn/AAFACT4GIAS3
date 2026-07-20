@@ -349,28 +349,48 @@ for m = 1:length(all_files)
         % for some reason MATLAB cannot write to the file, it catches the error, posts an error
         % to the terminal, and tries again. If the write is successful, the index is updated to
         % the final index in the FOR loop, and the FOR loop ends after a success.
-        for try_index = 1:5
-            try
-                xlfilename = strcat(FolderPathName,'\CoordinateSystem_',list_bone(bone_indx),'.xlsx');
-                % disp(xlfilename);
-                writematrix(A,xlfilename,'Sheet',name);
-                writecell(B,xlfilename,'Sheet',name,'Range','B1');
-                writematrix(C,xlfilename,'Sheet',name,'Range','A5');
-                writematrix(D,xlfilename,'Sheet',name,'Range','B5')
-                writematrix(D,xlfilename,'Sheet',name,'Range','B10')
-                writematrix(coords_final_unit(1,:),xlfilename,'Sheet',name,'Range','B6');
-                writematrix(coords_final_unit(2,:),xlfilename,'Sheet',name,'Range','B7');
-                writematrix(coords_final_unit(4,:),xlfilename,'Sheet',name,'Range','B8');
-                writematrix(coords_final_unit(6,:),xlfilename,'Sheet',name,'Range','B9');
-                writematrix(Temp_Coordinates_Unit(1,:),xlfilename,'Sheet',name,'Range','B11');
-                writematrix(Temp_Coordinates_Unit(2,:),xlfilename,'Sheet',name,'Range','B12');
-                writematrix(Temp_Coordinates_Unit(4,:),xlfilename,'Sheet',name,'Range','B13');
-                writematrix(Temp_Coordinates_Unit(6,:),xlfilename,'Sheet',name,'Range','B14');
-                try_index = 5;
-            catch
-                disp("Error attempting to write to Excel file, reattempting...")
-                continue
+        try
+            xlfilename = fullfile(FolderPathName, sprintf('CoordinateSystem_%s.xlsx', list_bone{bone_indx}));
+            % Build cell array S large enough for all placements (14 rows x 4 cols)
+            S = cell(14,4);
+            % Ensure A, B, C, D are cell arrays of chars (not string objects)
+            if isstring(A), A = cellstr(A); end
+            if isstring(B), B = cellstr(B); end
+            if isstring(C), C = cellstr(C); end
+            if isstring(D), D = cellstr(D); end
+            % Also ensure name is a char row (sheet name must be char or string)
+            if isstring(name), name = char(name); end
+
+            % Column A rows 1-3: A
+            S(1:3,1) = A;
+            % Column B rows 1-3: B (ensure B is cell)
+            S(1:3,2) = B;
+
+            % Column A rows 5-14: C
+            S(5:14,1) = C;
+            % Header labels D placed at row 5 and row 10 across cols 2-4
+            S(5,2:4) = D;
+            S(10,2:4) = D;
+            % Convert numeric coordinate rows to cell numeric values
+            toCell = @(v) num2cell(double(v));
+            S(6,2:4) = toCell(coords_final_unit(1,:));
+            S(7,2:4) = toCell(coords_final_unit(2,:));
+            S(8,2:4) = toCell(coords_final_unit(4,:));
+            S(9,2:4) = toCell(coords_final_unit(6,:));
+            S(11,2:4) = toCell(Temp_Coordinates_Unit(1,:));
+            S(12,2:4) = toCell(Temp_Coordinates_Unit(2,:));
+            S(13,2:4) = toCell(Temp_Coordinates_Unit(4,:));
+            S(14,2:4) = toCell(Temp_Coordinates_Unit(6,:));
+            % Trim any fully empty trailing columns
+            nonEmptyCol = find(any(~cellfun(@(c) isempty(c), S),1),1,'last');
+            if isempty(nonEmptyCol)
+                nonEmptyCol = 1;
             end
+            S = S(:,1:nonEmptyCol);
+            % Write in one call
+            writecell(S, xlfilename, 'Sheet', name);
+        catch ME
+            warning('Failed to write coordinate system to Excel: %s', ME.message);
         end
 
         %% Better Starting Point
