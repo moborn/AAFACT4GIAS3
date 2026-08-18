@@ -1,6 +1,7 @@
 %% Main Script for Coordinate System Toolbox
-clear, clc, close all
-
+function [] = MainCS_AsFunction(all_files, bone_indx, side_indx, xlfolder, predicted, plot_different)
+% clear, clc, close all
+close all, clc
 % This main code only requires the users bone model input. Select the
 % folder where the file is and then select the bone model(s) you wish the
 % apply a coordinate system to.
@@ -20,27 +21,31 @@ clear, clc, close all
 
 % Determine the files in the folder selected
 %RBF fit
-FolderPathName = "H:\Masters\left_foot\data\seperated_meshes\Talus_L\rbf_pose_aligned";
-%Original segmentations
-FolderPathName = "H:\Masters\left_foot\data\kfold_validation\fold_1_validation\predicted_seperated_bones\Talus_L";
-succesful_cases_fold = "H:\Masters\left_foot\data\posed_CT_aligned";
-files = dir(fullfile(FolderPathName, '*.*'));
-files = files(~ismember({files.name},{'.','..'}));
+% FolderPathName = "H:\Masters\left_foot\data\seperated_meshes\Talus_L\rbf_pose_aligned";
+% %Original segmentations
+% FolderPathName = "H:\Masters\left_foot\data\seperated_meshes\Metatarsals_L_1\posed_remeshed";
+if side_indx == 2
+    succesful_cases_fold = "H:\Masters\left_foot\data\posed_CT_aligned";
+elseif side_indx == 1
+    succesful_cases_fold = "H:\Masters\right_foot\data\posed_CT_aligned";
+end
+% files = dir(fullfile(FolderPathName, '*.*'));
+% files = files(~ismember({files.name},{'.','..'}));
 successful_files = dir(fullfile(succesful_cases_fold, "*.*"));
 successful_files = successful_files(~ismember({successful_files.name}, {'.', '..'}));
 successful_files = struct2cell(successful_files);
 successful_files = successful_files(1,:);
 successful_files = successful_files(:);
-temp = strfind(FolderPathName,'\');
-FolderName = FolderPathName(temp(end)+1:end); % Extracts the folder name selected
+% temp = strfind(FolderPathName,'\');
+% FolderName = FolderPathName(temp(end)+1:end); % Extracts the folder name selected
 
 %% Load all files into list
-temp = struct2cell(files);
-list_files = temp(1,:);
-% Filter list_files for .ply files (case-insensitive)
-is_ply = endsWith(lower(list_files), '.ply');
-all_files = list_files(is_ply);
-all_files = all_files(:)'; % row vector to match expected shape
+% temp = struct2cell(files);
+% list_files = temp(1,:);
+% % Filter list_files for .ply files (case-insensitive)
+% is_ply = endsWith(lower(list_files), '.ply');
+% all_files = list_files(is_ply);
+% all_files = all_files(:)'; % row vector to match expected shape
 
 
 % Caches: key = bone_indx (int), value = selections for that bone type
@@ -54,40 +59,45 @@ list_bone = {'Talus', 'Calcaneus', 'Navicular', 'Cuboid', 'Medial_Cuneiform','In
     'Tibia','Fibula'};
 % bone_indx = 14; %fibula
 % bone_indx = 13; %tibia
-bone_indx = 1; %talus
-% bone_indx = 2; %calcaneus
+% % bone_indx = 1; %talus
+% % bone_indx = 2; %calcaneus
 % bone_indx = 5;% Tarsals_L_1, ie medial cuneiform
-% bone_indx = 6; %tarsals_L_2, intermediate cuneiform
-% bone_indx = 7; %Tarsals_L_3, lateral cuneiform
-% bone_indx = 4; %Tarsals_L_4, cuboid
-% bone_indx = 3; %Tarsals_L_5, navicular
+% % bone_indx = 6; %tarsals_L_2, intermediate cuneiform
+% % bone_indx = 7; %Tarsals_L_3, lateral cuneiform
+% % bone_indx = 4; %Tarsals_L_4, cuboid
+% % bone_indx = 3; %Tarsals_L_5, navicular
 % bone_indx = 8; %Metatarsals_L_1
+% bone_indx = 9; %Metatarsals_L_2
+% bone_indx = 10; %Metatarsals_L_3
+% bone_indx = 11; %Metatarsals_L_4
+% bone_indx = 12; %Metatarsals_L_5
 
 list_bone2 = {'Talus', 'Calcaneus', 'Navicular', 'Cuboid', 'Med_Cuneiform','Int_Cuneiform',...
     'Lat_Cuneiform','First_Metatarsal','Second_Metatarsal','Third_Metatarsal','Fourth_Metatarsal','Fifth_Metatarsal',...
     'Tibia','Fibula'};
 list_side_folder = {'Right','_R.','_R_','Left','_L.','_L_'};
 list_side = {'Right','Left'};
-side_indx = 2; %left
+% side_indx = 2; %left
         % Final Plotting
 plotted_good = 0;
+% log_file = fopen(strcat(xlfolder,'live_progress.txt'), 'w');
 %% Iterate through each model selected
 for m = 1:length(all_files)
-    tic; 
+    t_start = datetime('now'); 
     % clear bone_indx side_folder_indx side_indx
 
     % Extract the name and file extension from the file
     FileName = char(all_files(m));
-    [~,name,ext] = fileparts(FileName);
+    % disp(FileName)
+    [filepath,name,ext] = fileparts(FileName);
     disp(name)
     name_original = name;
-    % if name ~= "6069_M_17_3217_ground_truth"
-    %     continue
-    % end
     temp_name = strsplit(name, "_rbfreg_posed"); %rbffit
-    temp_name = strsplit(name, "_rigidreg_remeshed"); %original seg
-    temp_name = strsplit(name, "_predicted"); %predicted
-    % temp_name = strsplit(name, "_ground_truth");
+    if predicted == 0
+        temp_name = strsplit(name, "_ground_truth"); %original seg
+    else
+        temp_name = strsplit(name, "_predicted"); %predicted
+    end
     temp_name = temp_name(1);
     case_was_successful = 0;
     for n = 1:length(successful_files)
@@ -97,37 +107,38 @@ for m = 1:length(all_files)
             break
         end
     end
+    % disp(fullfile(filepath,FileName))
     if case_was_successful == 0
        disp(strcat(name, " was not successfully rbf fit to ALL bones, skipped"))
         continue
     end
     %% Load in file based on file type
     if strcmpi(ext,'.k')
-        nodes = LoadDataFile(fullfile(FolderPathName,FileName));
+        nodes = LoadDataFile(fullfile(filepath,name));
         conlist = [];
         fprintf('Note: %s is a .k file — origin location and plotting will be limited.\n', FileName);
 
     elseif strcmpi(ext,'.stl')
-        TR = stlread(fullfile(FolderPathName,FileName));
+        TR = stlread(fullfile(filepath,name));
         nodes = TR.Points;
         conlist = TR.ConnectivityList;
 
     elseif strcmpi(ext,'.particles')
-        nodes = load(fullfile(FolderPathName,FileName));
+        nodes = load(fullfile(filepath,name));
         conlist = [];
         fprintf('Note: %s is a .particles file — origin location and plotting will be limited.\n', FileName);
 
     elseif strcmpi(ext,'.vtk')
-        nodes = LoadDataFile(fullfile(FolderPathName,FileName));
+        nodes = LoadDataFile(fullfile(filepath,name));
         conlist = [];
         fprintf('Note: %s is a .vtk file — origin location and plotting will be limited.\n', FileName);
 
     elseif strcmpi(ext,'.ply')
-        [nodes, conlist] = read_ply_loose(fullfile(FolderPathName,FileName));
+        [nodes, conlist] = read_ply_loose(FileName);
         nodes = [nodes.x, nodes.y, nodes.z];
 
     elseif strcmpi(ext,'.obj')
-        obj = readOBJ(fullfile(FolderPathName,FileName));
+        obj = readOBJ(fullfile(filepath,name));
         nodes = obj.V;
         conlist = obj.F;
 
@@ -259,7 +270,7 @@ for m = 1:length(all_files)
         [nodes_final, coords_final, coords_final_unit, Temp_Coordinates_Unit] = reorient(Temp_Nodes_Coords, cm_nodes, side_indx, RTs);
 
         if bone_indx == 1 && bone_coord(n) == 3 % Additional alignment for talus subtalar ACS
-            [aligned_nodes_TST, RTs_TST] = icp_template(bone_indx, nodes, 1, better_start);
+            [aligned_nodes_TST, RTs_TST] = icp_template(bone_indx, nodes, 1, better_start, name);
             [Temp_Coordinates_TST, Temp_Nodes_TST] = CoordinateSystem(aligned_nodes_TST, bone_indx, 1, side_indx);
 
             if joint_indx > 1
@@ -294,14 +305,14 @@ for m = 1:length(all_files)
         crit_Z = 1.645; % alpha = 0.05
 
         if max_Z <= crit_Z
-            
+
             % fprintf(strcat('The Coordinate System is SIMILAR to existing data\n'))
         else
             fprintf(strcat('The Coordinate System may be DIFFERENT than existing data, double check figure\n'))
         end
 % 
 % (max_Z > crit_Z && (bone_indx ~= 1 || 14))
-        if (max_Z > crit_Z) || (plotted_good == 0 && max_Z <= crit_Z)
+        if plot_different == 1 && ((max_Z > crit_Z) || (plotted_good == 0 && max_Z <= crit_Z))
             if plotted_good == 0
                 plotted_good = 1;
             end
@@ -310,7 +321,7 @@ for m = 1:length(all_files)
             fig_height = 600;
             fig_left = (screen_size(3) - fig_width) / 2;
             fig_bottom = (screen_size(4) - fig_height) / 2;
-    
+
             fig1 = figure('Position', [fig_left, fig_bottom+15, fig_width, fig_height]);
             if ~isempty(conlist_original)
                 Final_Bone = triangulation(conlist,nodes_original);
@@ -399,70 +410,81 @@ for m = 1:length(all_files)
         % to the terminal, and tries again. If the write is successful, the index is updated to
         % the final index in the FOR loop, and the FOR loop ends after a success.
         % Ensure Excel is not running to avoid file-lock issues
-        try
-            % On Windows, try to terminate Excel COM servers gracefully
-            if ispc
-                % Attempt to get active COM server and quit
-                try
-                    ExcelApp = actxGetRunningServer('Excel.Application');
-                    ExcelApp.DisplayAlerts = false;
-                    ExcelApp.Workbooks.Close;
-                    ExcelApp.Quit;
-                    delete(ExcelApp);
-                catch
-                    % If no running server or failure, try system taskkill
-                    [~,~] = system('taskkill /IM EXCEL.EXE /F >nul 2>&1');
-                end
-            else
-                % On non-Windows platforms, attempt to close any Excel processes via system
-                [~,~] = system('pkill -f -9 -i excel > /dev/null 2>&1');
-            end
-            pause(0.5) % brief pause to allow OS to release file locks
-        catch
-            % ignore any errors closing Excel
+
+        % try
+        %     % On Windows, try to terminate Excel COM servers gracefully
+        %     if ispc
+        %         % Attempt to get active COM server and quit
+        %         try
+        %             ExcelApp = actxGetRunningServer('Excel.Application');
+        %             ExcelApp.DisplayAlerts = false;
+        %             ExcelApp.Workbooks.Close;
+        %             ExcelApp.Quit;
+        %             delete(ExcelApp);
+        %         catch
+        %             % If no running server or failure, try system taskkill
+        %             [~,~] = system('taskkill /IM EXCEL.EXE /F >nul 2>&1');
+        %         end
+        %     else
+        %         % On non-Windows platforms, attempt to close any Excel processes via system
+        %         [~,~] = system('pkill -f -9 -i excel > /dev/null 2>&1');
+        %     end
+        %     pause(0.5) % brief pause to allow OS to release file locks
+        % catch
+        %     % ignore any errors closing Excel
+        % end
+        if predicted == 0
+            xlfilename = fullfile(xlfolder, sprintf('CoordinateSystem_%s_%s_%s.xlsx', list_bone{bone_indx}, list_side{side_indx}, 'ground_truth'));
+        else
+            xlfilename = fullfile(xlfolder, sprintf('CoordinateSystem_%s_%s_%s.xlsx', list_bone{bone_indx}, list_side{side_indx}, 'predicted'));
         end
-        try
-            xlfilename = fullfile(FolderPathName, sprintf('CoordinateSystem_%s.xlsx', list_bone{bone_indx}));
-            % Build cell array S large enough for all placements (14 rows x 4 cols)
-            S = cell(14,4);
-            % Ensure A, B, C, D are cell arrays of chars (not string objects)
-            if isstring(A), A = cellstr(A); end
-            if isstring(B), B = cellstr(B); end
-            if isstring(C), C = cellstr(C); end
-            if isstring(D), D = cellstr(D); end
-            % Also ensure name is a char row (sheet name must be char or string)
-            if isstring(name), name = char(name); end
+        % Build cell array S large enough for all placements (14 rows x 4 cols)
+        
+        S = cell(14,4);
+        % Ensure A, B, C, D are cell arrays of chars (not string objects)
+        if isstring(A), A = cellstr(A); end
+        if isstring(B), B = cellstr(B); end
+        if isstring(C), C = cellstr(C); end
+        if isstring(D), D = cellstr(D); end
+        % Also ensure name is a char row (sheet name must be char or string)
+        if isstring(name), name = char(name); end
 
-            % Column A rows 1-3: A
-            S(1:3,1) = A;
-            % Column B rows 1-3: B (ensure B is cell)
-            S(1:3,2) = B;
+        % Column A rows 1-3: A
+        S(1:3,1) = A;
+        % Column B rows 1-3: B (ensure B is cell)
+        S(1:3,2) = B;
 
-            % Column A rows 5-14: C
-            S(5:14,1) = C;
-            % Header labels D placed at row 5 and row 10 across cols 2-4
-            S(5,2:4) = D;
-            S(10,2:4) = D;
-            % Convert numeric coordinate rows to cell numeric values
-            toCell = @(v) num2cell(double(v));
-            S(6,2:4) = toCell(coords_final_unit(1,:));
-            S(7,2:4) = toCell(coords_final_unit(2,:));
-            S(8,2:4) = toCell(coords_final_unit(4,:));
-            S(9,2:4) = toCell(coords_final_unit(6,:));
-            S(11,2:4) = toCell(Temp_Coordinates_Unit(1,:));
-            S(12,2:4) = toCell(Temp_Coordinates_Unit(2,:));
-            S(13,2:4) = toCell(Temp_Coordinates_Unit(4,:));
-            S(14,2:4) = toCell(Temp_Coordinates_Unit(6,:));
-            % Trim any fully empty trailing columns
-            nonEmptyCol = find(any(~cellfun(@(c) isempty(c), S),1),1,'last');
-            if isempty(nonEmptyCol)
-                nonEmptyCol = 1;
+        % Column A rows 5-14: C
+        S(5:14,1) = C;
+        % Header labels D placed at row 5 and row 10 across cols 2-4
+        S(5,2:4) = D;
+        S(10,2:4) = D;
+        % Convert numeric coordinate rows to cell numeric values
+        toCell = @(v) num2cell(double(v));
+        S(6,2:4) = toCell(coords_final_unit(1,:));
+        S(7,2:4) = toCell(coords_final_unit(2,:));
+        S(8,2:4) = toCell(coords_final_unit(4,:));
+        S(9,2:4) = toCell(coords_final_unit(6,:));
+        S(11,2:4) = toCell(Temp_Coordinates_Unit(1,:));
+        S(12,2:4) = toCell(Temp_Coordinates_Unit(2,:));
+        S(13,2:4) = toCell(Temp_Coordinates_Unit(4,:));
+        S(14,2:4) = toCell(Temp_Coordinates_Unit(6,:));
+        % Trim any fully empty trailing columns
+        nonEmptyCol = find(any(~cellfun(@(c) isempty(c), S),1),1,'last');
+        if isempty(nonEmptyCol)
+            nonEmptyCol = 1;
+        end
+        S = S(:,1:nonEmptyCol);
+        % Write in one call
+        while true
+            try
+                writecell(S, xlfilename, 'Sheet', name);
+                break;
+            catch ME
+                fprintf('Could not write "%s": %s\n', xlfilename, ME.message);
+                % fprintf('Retrying in 2 seconds...\n');
+                % pause(2);
             end
-            S = S(:,1:nonEmptyCol);
-            % Write in one call
-            writecell(S, xlfilename, 'Sheet', name);
-        catch ME
-            warning('Failed to write coordinate system to Excel: %s', ME.message);
         end
 
         %% Better Starting Point
@@ -476,9 +498,14 @@ for m = 1:length(all_files)
         end
 
         %% Clear Variables for New Loop
-        vars = {'Temp_Nodes', 'Temp_Coordinates', 'Temp_Coordinates_Unit', 'Temp_Nodes_Coords', 'cm_nodes', 'RTs', 'coords_final','coords_final_unit','nodes','aligned_nodes','name','conlist'};
+        vars = {'Temp_Nodes', 'Temp_Coordinates', 'Temp_Coordinates_Unit', 'Temp_Nodes_Coords', 'cm_nodes', 'RTs', 'coords_final','coords_final_unit','nodes','aligned_nodes','conlist'};
         clear(vars{:})
-        elapsedTime = toc;
-        disp(strcat("elapsed time: ", num2str(elapsedTime), " seconds"))
+        t_end = datetime('now'); 
+        true_elapsed = seconds(t_end - t_start);
+        disp(strcat("elapsed time: ", num2str(true_elapsed), " seconds"))
+        % fprintf(log_file, 'Case %s finished in %.4f seconds\n', name, true_elapsed);
     end
+    
+end
+% fclose(log_file);
 end

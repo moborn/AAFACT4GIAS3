@@ -106,10 +106,10 @@ inp.addParamValue('EdgeRejection', false, @(x)islogical(x));
 inp.addParamValue('Extrapolation', false, @(x)islogical(x));
 
 validMatching = {'bruteForce','Delaunay','kDtree'};
-inp.addParamValue('Matching', 'bruteForce', @(x)any(strcmpi(x,validMatching)));
+inp.addParamValue('Matching', 'kDtree', @(x)any(strcmpi(x,validMatching)));
 
 validMinimize = {'point','plane','lmapoint'};
-inp.addParamValue('Minimize', 'point', @(x)any(strcmpi(x,validMinimize)));
+inp.addParamValue('Minimize', 'plane', @(x)any(strcmpi(x,validMinimize)));
 
 inp.addParamValue('Normals', [], @(x)isreal(x) && size(x,1) == 3);
 
