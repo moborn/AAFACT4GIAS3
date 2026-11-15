@@ -124,12 +124,9 @@ inp.addParamValue('Verbose', false, @(x)islogical(x));
 inp.addParamValue('Weight', @(x)ones(1,length(x)), @(x)isa(x,'function_handle'));
 
 inp.addParamValue('WorstRejection', 0, @(x)isscalar(x) && x > 0 && x < 1);
-inp.addParamValue('RMSTolerance', 1e-5, @(x)isscalar(x) && x > 0);
 
 inp.parse(q,p,varargin{:});
 arg = inp.Results;
-exitCondition = 'maxIterations';
-kUsed = arg.iter;
 clear('inp');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -287,36 +284,17 @@ for k=1:arg.iter
     end
     t(k+1) = toc;
 
-    if k > 1
-        deltaER = abs(ER(k+1) - ER(k));
-        if deltaER <= arg.RMSTolerance * max(1, ER(k))
-            exitCondition = 'RMS convergence';
-            kUsed = k;
-            break;
-        end
-    end
+    % if k >= 6 && std(ER(k-5:k+1)) < 1e-6
+    %     break;
+    % end
 end
 
-
-finalIdx = k + 1;
-finalRMS = ER(finalIdx);
+% ER = nonzeros(ER);
 
 if not(arg.ReturnAll)
-    TR = TR(:,:,finalIdx);
-    TT = TT(:,:,finalIdx);
-else
-    TR = TR(:,:,1:finalIdx);
-    TT = TT(:,:,1:finalIdx);
+    TR = TR(:,:,end);
+    TT = TT(:,:,end);
 end
-
-ER = ER(1:finalIdx);
-t = t(1:finalIdx);
-if arg.Verbose
-    fprintf('ICP finished after %d iterations\n', kUsed);
-    fprintf('Final RMS error: %.6g\n', finalRMS);
-    fprintf('Exit condition: %s\n', exitCondition);
-end
-
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -603,22 +581,17 @@ end
 % define the border/edge of the surface.
 
 function bound = find_bound(pts, poly)
-% Returns the vertices on the TRUE free boundary of the triangle mesh given by
-% pts (3xn) and poly (mx3 indices into pts). For a closed mesh this is empty,
-% so nothing is rejected. (The previous version built a Delaunay tetrahedralization
-% of the points and returned convex-hull vertices, which is not a mesh boundary.)
 
-if isempty(poly)
-    error('icp:noBoundary', 'EdgeRejection needs either Boundary or Triangulation.');
-end
+%Correcting polygon indices and converting datatype 
 poly = double(poly);
-if max(poly(:)) > size(pts,2)
-    error('icp:badTriangulation', ...
-        'Triangulation indexes past the end of q. Pass Boundary instead (e.g. for a cropped template).');
-end
+pts = double(pts);
 
-TRi = triangulation(poly, double(pts)');
-FF = freeBoundary(TRi);          % free edges (k x 2); empty if the mesh is closed
-bound = unique(FF(:))';          % 1 x ? row vector, as icp expects
+%Calculating freeboundary points:
+% TR = triangulation(poly, pts(1,:)', pts(2,:)', pts(3,:)');
+TR = delaunayTriangulation(pts(1,:)', pts(2,:)', pts(3,:)');
+FF = freeBoundary(TR);
 
+%Output
+bound = FF(:,1);
+ 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
