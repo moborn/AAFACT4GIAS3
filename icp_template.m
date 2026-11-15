@@ -13,6 +13,21 @@ elseif isfolder(path2)
     addpath(path2);
 end
 
+<<<<<<< Updated upstream
+=======
+templateFolder = fullfile(fileparts(mfilename('fullpath')), 'Template_Bones');
+
+if isfolder(templateFolder)
+    pathFolders = strsplit(path, pathsep);
+    pathFolders = pathFolders(~cellfun('isempty', pathFolders));
+
+    if ~any(strcmpi(pathFolders, templateFolder))
+        addpath(templateFolder)
+    end
+else
+    error('Template_Bones folder not found: %s', templateFolder);
+end
+>>>>>>> Stashed changes
 %% Read in Template Bone
 if bone_indx == 1 && bone_coord == 1 % TN
     TR_template = stlread('Talus_Template.stl');
@@ -185,13 +200,11 @@ elseif parttib_multiplier > 1 && tibfib_switch == 2 && bone_indx >= 13
 end
 
 %% Performing ICP alignment
-% This is the initial alignment with no rotation.
-% Two different icp approaches are used, the first includeds the faces and
-% the second is just the points.
+% Initial alignment using centroids and long axes, then one ICP pass.
 
 format long g
-iterations = 200;
 
+<<<<<<< Updated upstream
 % Rotations
 r.r0 = eye(3);
 % r.rx = rotx(90);
@@ -244,19 +257,34 @@ if better_start == 1
         [~,~,error_temp] = icp(nodes_template',rotnodes', iterations_temp,'Matching','kDtree','EdgeRejection',logical(1),'Triangulation',con_temp); % Perform small ICP
         E_short.(fields{n}) = error_temp(end); % Save the lowest error
     end
+=======
 
-    % Convert the structure 'E' to a cell array for easier sorting
-    E_short_fields = fieldnames(E_short);
-    E_short_values = struct2array(E_short);
+templateCenter = mean(nodes_template, 1);
+sourceCenter = mean(nodes, 1);
 
-    % Find the indices of the 5 smallest error values
-    [~, idx_smallest] = mink(E_short_values, 5);
+format long g
 
-    % Get the 5 corresponding field names (rotation matrices)
-    smallest_fields = E_short_fields(idx_smallest);
+templateCenter = mean(nodes_template, 1);
+sourceCenter = mean(nodes, 1);
+>>>>>>> Stashed changes
 
-    % Rerun the loop with 200 iterations on the 5 smallest error rotations
+R0_col = eye(3);
 
+
+R0 = R0_col';
+nodes_initial = (nodes - sourceCenter) * R0 + templateCenter;
+rmsTol = 1e-9;
+iterations =10000;
+[R_icp, T_icp, ~] =  icp(nodes_template', nodes_initial', iterations, ...
+    'Matching','kDtree', ...
+    'EdgeRejection',true, ...
+    'Triangulation',con_temp, ...
+    'RMSTolerance',rmsTol, ...
+    'Verbose',true);
+
+aligned_nodes = (R_icp * nodes_initial' + repmat(T_icp, 1, size(nodes_initial, 1)))';
+
+<<<<<<< Updated upstream
     for i = 1:numel(smallest_fields)
         field_name = smallest_fields{i};  % Get the field name of the current rotation
         rot = r.(field_name);  % Access the corresponding rotation matrix
@@ -364,6 +392,19 @@ if better_start == 3
     iflip = init_rot';  % The rotation matrix used for alignment
     iR = R;  % The best R matrix
     iT = final_translate;  % The best T vector
+=======
+iflip = R0;
+iR = R_icp;
+iT = T_icp;
+
+%% Additional alignments and adjustments
+% This loop performs an alignment for the TT CS of the talus
+if bone_indx == 1 && bone_coord >= 2
+    [sR_talus,~,~] = icp(nodes_template2',nodes_template',25,'Matching','kDtree','EdgeRejection',logical(1),'Triangulation',con_temp);
+    aligned_nodes = (sR_talus*(aligned_nodes'))';
+else
+    sR_talus = [];
+>>>>>>> Stashed changes
 end
 
         
@@ -489,48 +530,52 @@ if tibfib_switch == 1 && bone_indx == 13
     nodes_test3 = nodes_test1*rotz(180);
     nodes_test4 = nodes_test1*rotz(270);
 
-    [Rtw1,Ttw1,Etw1] = icp(nodes_template',nodes_test1', iterations,'Matching','kDtree','WorstRejection',0.1);
+    [Rtw1,Ttw1,Etw1] = icp(nodes_template',nodes_test1', iterations,'Matching','kDtree');
 
     if better_start == 1
-        [Rtw2,Ttw2,Etw2] = icp(nodes_template',nodes_test2', iterations,'Matching','kDtree','WorstRejection',0.1);
-        [Rtw3,Ttw3,Etw3] = icp(nodes_template',nodes_test3', iterations,'Matching','kDtree','WorstRejection',0.1);
-        [Rtw4,Ttw4,Etw4] = icp(nodes_template',nodes_test4', iterations,'Matching','kDtree','WorstRejection',0.1);
+        [Rtw2,Ttw2,Etw2] = icp(nodes_template',nodes_test2', iterations,'Matching','kDtree');
+        [Rtw3,Ttw3,Etw3] = icp(nodes_template',nodes_test3', iterations,'Matching','kDtree');
+        [Rtw4,Ttw4,Etw4] = icp(nodes_template',nodes_test4', iterations,'Matching','kDtree');
         Etw = min([Etw1(end),Etw2(end),Etw3(end),Etw4(end)]);
     else
         Etw = min([Etw1(end)]);
     end
 
-    if Etw == Etw1(end)
-        if better_start == 1
-            sflip = eye(3);
-            aligned_nodes = (Rtw1*(aligned_nodes') + repmat(Ttw1,1,length(aligned_nodes')))';
-            sR_tibia= Rtw1;
-            sT_tibia = Ttw1;
-        else
-            sflip = eye(3);
-            aligned_nodes = (aligned_nodes' + repmat(Ttw1,1,length(aligned_nodes')))';
-            sR_tibia= Rtw1;
-            sT_tibia = Ttw1;
-        end
-    elseif Etw == Etw2(end)
-        sflip = rotz(90);
-        aligned_nodes = aligned_nodes*rotz(90);
-        aligned_nodes = (Rtw2*(aligned_nodes') + repmat(Ttw2,1,length(aligned_nodes')))';
-        sR_tibia= Rtw2;
-        sT_tibia= Ttw2;
-    elseif Etw == Etw3(end)
-        sflip = rotz(180);
-        aligned_nodes = aligned_nodes*rotz(180);
-        aligned_nodes = (Rtw3*(aligned_nodes') + repmat(Ttw3,1,length(aligned_nodes')))';
-        sR_tibia= Rtw3;
-        sT_tibia= Ttw3;
-    elseif Etw == Etw4(end)
-        sflip = rotz(270);
-        aligned_nodes = aligned_nodes*rotz(270);
-        aligned_nodes = (Rtw4*(aligned_nodes') + repmat(Ttw4,1,length(aligned_nodes')))';
-        sR_tibia= Rtw4;
-        sT_tibia= Ttw4;
+    if better_start == 1
+        [~, bestIdx] = min([Etw1(end), Etw2(end), Etw3(end), Etw4(end)]);
+    else
+        bestIdx = 1;
     end
+
+    switch bestIdx
+        case 1
+            sflip = eye(3);
+            aligned_nodes = (Rtw1 * aligned_nodes' + repmat(Ttw1,1,size(aligned_nodes,1)))';
+            sR_tibia = Rtw1;
+            sT_tibia = Ttw1;
+
+        case 2
+            sflip = rotz(90);
+            aligned_nodes = aligned_nodes * rotz(90);
+            aligned_nodes = (Rtw2 * aligned_nodes' + repmat(Ttw2,1,size(aligned_nodes,1)))';
+            sR_tibia = Rtw2;
+            sT_tibia = Ttw2;
+
+        case 3
+            sflip = rotz(180);
+            aligned_nodes = aligned_nodes * rotz(180);
+            aligned_nodes = (Rtw3 * aligned_nodes' + repmat(Ttw3,1,size(aligned_nodes,1)))';
+            sR_tibia = Rtw3;
+            sT_tibia = Ttw3;
+
+        case 4
+            sflip = rotz(270);
+            aligned_nodes = aligned_nodes * rotz(270);
+            aligned_nodes = (Rtw4 * aligned_nodes' + repmat(Ttw4,1,size(aligned_nodes,1)))';
+            sR_tibia = Rtw4;
+            sT_tibia = Ttw4;
+    end
+
 else
     sR_tibia= [];
     sT_tibia= [];

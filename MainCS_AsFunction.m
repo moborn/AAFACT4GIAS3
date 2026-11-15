@@ -94,7 +94,11 @@ for m = 1:length(all_files)
     name_original = name;
     temp_name = strsplit(name, "_rbfreg_posed"); %rbffit
     if predicted == 0
+<<<<<<< Updated upstream
         temp_name = strsplit(name, "_ground_truth"); %original seg
+=======
+        temp_name = strsplit(name, "_rbfreg_posed"); %original seg
+>>>>>>> Stashed changes
     else
         temp_name = strsplit(name, "_predicted"); %predicted
     end
@@ -109,7 +113,11 @@ for m = 1:length(all_files)
     end
     % disp(fullfile(filepath,FileName))
     if case_was_successful == 0
+<<<<<<< Updated upstream
        disp(strcat(name, " was not successfully rbf fit to ALL bones, skipped"))
+=======
+       %disp(strcat(name, " was not successfully rbf fit to ALL bones, skipped"))
+>>>>>>> Stashed changes
         continue
     end
     %% Load in file based on file type
@@ -165,10 +173,17 @@ for m = 1:length(all_files)
         
     else
         if bone_indx == 1
+<<<<<<< Updated upstream
             bone_coord = [1,2,3]; %all talus coordinate systems
             cs_string = string(list_talus(bone_coord));
         elseif bone_indx == 2
             bone_coord = [1,2];         
+=======
+            bone_coord = 2; %all talus coordinate systems
+            cs_string = string(list_talus(bone_coord));
+        elseif bone_indx == 2
+            bone_coord = 2;         
+>>>>>>> Stashed changes
             cs_string = string(list_calcaneus(bone_coord));
         elseif bone_indx >= 8 && bone_indx <= 12
             bone_coord = [1,2];
@@ -244,9 +259,14 @@ for m = 1:length(all_files)
         % direction, the anterior region is in the positive Y direction, and the
         % medial region is in the positive X direction.
         [nodes,cm_nodes] = center(nodes,1);
+<<<<<<< Updated upstream
         better_start = 1; %standard
         better_start = 3; %better icp initial guess, pca alignment
         [aligned_nodes, RTs] = icp_template(bone_indx, nodes, bone_coord(n), better_start, name);
+=======
+        better_start = 1;
+        [aligned_nodes, RTs] = icp_template(bone_indx, nodes, bone_coord(n), better_start);
+>>>>>>> Stashed changes
 
         %% Performs coordinate system calculation
         [Temp_Coordinates, Temp_Nodes] = CoordinateSystem(aligned_nodes, bone_indx, bone_coord(n), side_indx);
@@ -270,7 +290,11 @@ for m = 1:length(all_files)
         [nodes_final, coords_final, coords_final_unit, Temp_Coordinates_Unit] = reorient(Temp_Nodes_Coords, cm_nodes, side_indx, RTs);
 
         if bone_indx == 1 && bone_coord(n) == 3 % Additional alignment for talus subtalar ACS
+<<<<<<< Updated upstream
             [aligned_nodes_TST, RTs_TST] = icp_template(bone_indx, nodes, 1, better_start, name);
+=======
+            [aligned_nodes_TST, RTs_TST] = icp_template(bone_indx, nodes, 1, better_start);
+>>>>>>> Stashed changes
             [Temp_Coordinates_TST, Temp_Nodes_TST] = CoordinateSystem(aligned_nodes_TST, bone_indx, 1, side_indx);
 
             if joint_indx > 1
@@ -287,6 +311,7 @@ for m = 1:length(all_files)
 
             [~, coords_final_TST, coords_final_unit_TST, Temp_Coordinates_Unit_TST] = reorient(Temp_Nodes_Coords_TST, cm_nodes, side_indx, RTs_TST);
 
+<<<<<<< Updated upstream
             coords_final = [coords_final(1,:); ((coords_final_TST(2,:) + coords_final(2,:)).'/2)'
                 coords_final(3,:); ((coords_final_TST(4,:) + coords_final(4,:)).'/2)'
                 coords_final(5,:); ((coords_final_TST(6,:) + coords_final(6,:)).'/2)'];
@@ -298,6 +323,12 @@ for m = 1:length(all_files)
             Temp_Coordinates_Unit = [Temp_Coordinates_Unit(1,:); ((Temp_Coordinates_Unit_TST(2,:) + Temp_Coordinates_Unit(2,:)).'/2)'
                 Temp_Coordinates_Unit(3,:); ((Temp_Coordinates_Unit_TST(4,:) + Temp_Coordinates_Unit(4,:)).'/2)'
                 Temp_Coordinates_Unit(5,:); ((Temp_Coordinates_Unit_TST(6,:) + Temp_Coordinates_Unit(6,:)).'/2)'];
+=======
+            % Save the subtalar ACS to the final coordinate system by averaging the axes of the two coordinate systems
+            coords_final = AverageOrthogonalAxes(coords_final, coords_final_TST);
+            coords_final_unit = AverageOrthogonalAxes(coords_final_unit, coords_final_unit_TST);
+            Temp_Coordinates_Unit = AverageOrthogonalAxes(Temp_Coordinates_Unit, Temp_Coordinates_Unit_TST);
+>>>>>>> Stashed changes
         end
 
         %% Similarity
@@ -312,16 +343,26 @@ for m = 1:length(all_files)
         end
 % 
 % (max_Z > crit_Z && (bone_indx ~= 1 || 14))
+<<<<<<< Updated upstream
         if plot_different == 1 && ((max_Z > crit_Z) || (plotted_good == 0 && max_Z <= crit_Z))
             if plotted_good == 0
                 plotted_good = 1;
             end
+=======
+        %if plot_different == 1 && ((max_Z > crit_Z) || (plotted_good == 0 && max_Z <= crit_Z))
+        if plot_different == 1 && max_Z > crit_Z
+            if plotted_good == 0
+                plotted_good = 1;
+            end
+
+>>>>>>> Stashed changes
             screen_size = get(0, 'ScreenSize');
             fig_width = 800;
             fig_height = 600;
             fig_left = (screen_size(3) - fig_width) / 2;
             fig_bottom = (screen_size(4) - fig_height) / 2;
 
+<<<<<<< Updated upstream
             fig1 = figure('Position', [fig_left, fig_bottom+15, fig_width, fig_height]);
             if ~isempty(conlist_original)
                 Final_Bone = triangulation(conlist,nodes_original);
@@ -329,11 +370,22 @@ for m = 1:length(all_files)
                     'FaceColor', [0.85 0.85 0.85], ...
                     'EdgeColor','none',...
                     'FaceLighting','gouraud',...
+=======
+            fig1 = figure('Visible', 'off', 'Position', [fig_left, fig_bottom+15, fig_width, fig_height]);
+
+            if ~isempty(conlist_original)
+                Final_Bone = triangulation(conlist, nodes_original);
+                patch('Faces', Final_Bone.ConnectivityList, 'Vertices', Final_Bone.Points, ...
+                    'FaceColor', [0.85 0.85 0.85], ...
+                    'EdgeColor', 'none', ...
+                    'FaceLighting', 'gouraud', ...
+>>>>>>> Stashed changes
                     'AmbientStrength', 0.15);
                 view([-15 20])
                 camlight HEADLIGHT
                 material('dull');
             else
+<<<<<<< Updated upstream
                 plot3(nodes_original(:,1),nodes_original(:,2),nodes_original(:,3),'k.')
                 view([-15 20])
             end
@@ -354,12 +406,44 @@ for m = 1:length(all_files)
             else
                 text(coords_final(6,1),coords_final(6,2),coords_final(6,3),'   Medial','HorizontalAlignment','left','FontSize',15,'Color','r');
             end
+=======
+                plot3(nodes_original(:,1), nodes_original(:,2), nodes_original(:,3), 'k.')
+                view([-15 20])
+            end
+
+            hold on
+            plot_arrow_quiver(coords_final(1,:), coords_final(2,:), [0 1 0], 5, 50)
+            plot_arrow_quiver(coords_final(3,:), coords_final(4,:), [0 0 1], 5, 50)
+            plot_arrow_quiver(coords_final(5,:), coords_final(6,:), [1 0 0], 5, 50)
+            legend(' Nodal Points', ' AP Axis', ' SI Axis', ' ML Axis')
+
+            title(strcat('Coordinate System of', " ", char(name), " is maybe different"), 'Interpreter', 'none')
+            text(coords_final(2,1), coords_final(2,2), coords_final(2,3), '   Anterior', ...
+                'HorizontalAlignment', 'left', 'FontSize', 15, 'Color', 'g');
+            text(coords_final(4,1), coords_final(4,2), coords_final(4,3), '   Superior', ...
+                'HorizontalAlignment', 'left', 'FontSize', 15, 'Color', 'b');
+            if side_indx == 1
+                text(coords_final(6,1), coords_final(6,2), coords_final(6,3), '   Lateral', ...
+                    'HorizontalAlignment', 'left', 'FontSize', 15, 'Color', 'r');
+            else
+                text(coords_final(6,1), coords_final(6,2), coords_final(6,3), '   Medial', ...
+                    'HorizontalAlignment', 'left', 'FontSize', 15, 'Color', 'r');
+            end
+
+>>>>>>> Stashed changes
             grid off
             axis off
             xlabel('X')
             ylabel('Y')
             zlabel('Z')
             axis equal
+<<<<<<< Updated upstream
+=======
+
+            outFile = fullfile(xlfolder, sprintf('%s_%s_coordinate_plot.png', name, list_bone{bone_indx}));
+            exportgraphics(fig1, outFile, 'Resolution', 300);
+            close(fig1);
+>>>>>>> Stashed changes
         end
 
         %% Save both coordinate systems to spreadsheet
@@ -503,7 +587,11 @@ for m = 1:length(all_files)
         t_end = datetime('now'); 
         true_elapsed = seconds(t_end - t_start);
         disp(strcat("elapsed time: ", num2str(true_elapsed), " seconds"))
+<<<<<<< Updated upstream
         % fprintf(log_file, 'Case %s finished in %.4f seconds\n', name, true_elapsed);
+=======
+        %fprintf(log_file, 'Case %s finished in %.4f seconds\n', name, true_elapsed);
+>>>>>>> Stashed changes
     end
     
 end
